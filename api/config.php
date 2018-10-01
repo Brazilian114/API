@@ -3,11 +3,12 @@
 error_reporting(0);
 session_start();
 
+
 /* DATABASE CONFIGURATION */
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');
-define('DB_DATABASE', 'banan');
+define('DB_DATABASE', 'carcare');
 define("BASE_URL", "http://localhost/PHP-Slim-Restful/api/");
 define("SITE_KEY", 'yourSecretKey');
 
