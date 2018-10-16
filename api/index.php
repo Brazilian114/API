@@ -12,11 +12,11 @@ $app = new \Slim\Slim();
 $app->post('/login','login'); /* User login */
 $app->post('/signup','signup'); /* User Signup  */
 //app->get('/getFeed','getFeed'); /* User Feeds  */
-//$app->post('/feed','feed'); /* User Feeds  */
+$app->post('/feed','feed'); /* User Feeds  */
 $app->post('/feedUpdate','feedUpdate'); /* User Feeds  */
 $app->post('/profileUpdate','profileUpdate');
 
-//$app->post('/feedDelete','feedDelete'); /* User Feeds  */
+$app->post('/feedDelete','feedDelete'); /* User Feeds  */
 //$app->post('/getImages', 'getImages');
 
 $app->run();
@@ -239,5 +239,90 @@ function profileUpdate(){
     }
 
 }
+
+function feed(){
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    $user_id=$data->user_id;
+    $token=$data->token;
+    $lastCreated = $data->lastCreated;
+    $systemToken=apiToken($user_id);
+   
+    try {
+         
+        if($systemToken == $token){
+            $feedData = '';
+            $db = getDB();
+            if($lastCreated){
+                $sql = "SELECT * FROM booking WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
+                $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+             }
+            else{
+                $sql = "SELECT * FROM booking WHERE user_id_fk=:user_id ORDER BY booking_id DESC ";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            }
+            
+            $stmt->execute();
+            $feedData = $stmt->fetchAll(PDO::FETCH_OBJ);
+           
+            $db = null;
+            if($feedData){
+                echo '{"feedData": ' . json_encode($feedData) . '}';
+            }
+            else{
+                echo '{"feedData": "" }';
+            }
+            
+
+
+        } else{
+            echo '{"error":{"text":"No access"}}';
+        }
+       
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+    
+    
+    
+}
+
+
+function feedDelete(){
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    $user_id=$data->user_id;
+    $token=$data->token;
+    $booking_id=$data->booking_id;
+    
+    $systemToken=apiToken($user_id);
+   
+    try {
+         
+        if($systemToken == $token){
+            $feedData = '';
+            $db = getDB();
+            $sql = "DELETE FROM booking  WHERE user_id_fk=:user_id AND booking_id=:booking_id";
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            $stmt->bindParam("booking_id", $booking_id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+           
+            $db = null;
+            echo '{"success":{"text":"Feed deleted"}}';
+        } else{
+            echo '{"error":{"text":"No access"}}';
+        }
+       
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+    
+}
+
 ?>
 
