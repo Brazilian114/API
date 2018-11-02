@@ -32,7 +32,7 @@ function login() {
         
         $db = getDB();
         $userData ='';
-        $sql = "SELECT *  FROM customer WHERE  email=:username and password=:password ";
+        $sql = "SELECT *  FROM customer  INNER JOIN province ON customer.province=province.province_id WHERE  email=:username and password=:password ";
         $stmt = $db->prepare($sql);
         $stmt->bindParam("username", $data->username, PDO::PARAM_STR);
         $password=hash('sha256',$data->password);
@@ -69,8 +69,8 @@ function signup() {
     $username=$data->username;
     $tel=$data->tel;
     $license=$data->license;
-    $province=$data->province;
-    $status=$data->status;
+    $province_name=$data->province_name;
+    
     $password=$data->password;
     
     try {
@@ -85,7 +85,7 @@ function signup() {
         {
             $db = getDB();
             $userData = '';
-            $sql = "SELECT user_id FROM customer WHERE username=:username or email=:email";
+            $sql = "SELECT * FROM customer INNER JOIN province ON customer.province=province.province_id WHERE username=:username or email=:email";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username,PDO::PARAM_STR);
             $stmt->bindParam("email", $email,PDO::PARAM_STR);
@@ -96,14 +96,14 @@ function signup() {
             {
                 
                 /*Inserting user values*/
-                $sql1="INSERT INTO customer(username,password,email,tel,province,license)VALUES(:username,:password,:email,:tel,:province,:license)";
+                $sql1="INSERT INTO customer(username,password,email,tel,province,license)VALUES(:username,:password,:email,:tel,:province_name,:license)";
                 $stmt1 = $db->prepare($sql1);
                 $stmt1->bindParam("username", $username,PDO::PARAM_STR);
                 $password=hash('sha256',$data->password);
                 $stmt1->bindParam("password", $password,PDO::PARAM_STR);
                 $stmt1->bindParam("email", $email,PDO::PARAM_STR);
                 $stmt1->bindParam("tel", $tel,PDO::PARAM_STR);
-                $stmt1->bindParam("province", $province,PDO::PARAM_STR);
+                $stmt1->bindParam("province_name", $province_name,PDO::PARAM_STR);
                 $stmt1->bindParam("license", $license,PDO::PARAM_STR);
                 
                 $stmt1->execute();
@@ -126,7 +126,8 @@ function internalUserDetails($input) {
     
     try {
         $db = getDB();
-        $sql = "SELECT user_id, email, username, tel, license, province  FROM customer WHERE username=:input or email=:input";
+        $sql = "SELECT user_id, email, username, tel, license, province_name FROM customer INNER JOIN province ON customer.province=province.province_id 
+                       WHERE username=:input or email=:input";
         $stmt = $db->prepare($sql);
         $stmt->bindParam("input", $input,PDO::PARAM_STR);
         $stmt->execute();
@@ -152,8 +153,9 @@ function feedUpdate(){
     $tel=$data->tel;
     $province=$data->province;
     $booking_service_id=$data->booking_service_id;
-    $datetime=$data->datetime;
-    $status=$data->status;
+    $time=$data->time;
+    $status_id=$data->status_id;
+    $user_type=$data->user_type;
     
     $systemToken=apiToken($user_id);
 
@@ -161,25 +163,28 @@ function feedUpdate(){
         if($systemToken == $token){
             $feedData = '';
             $db = getDB();
-            $sql = "INSERT INTO booking ( username ,license ,province, booking_service_id, datetime, status, tel,user_id_fk) VALUES 
-                                        (:username,:license,:province,:booking_service_id,:datetime,:status,:tel,:user_id)";
+            $sql = "INSERT INTO booking ( username ,license ,province, booking_service_id, time_id, status_id, tel,created,user_id_fk,user_type) VALUES 
+                                        (:username,:license,:province,:booking_service_id,:time,:status_id,:tel,:created,:user_id,:user_type)";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
             $stmt->bindParam("license", $license, PDO::PARAM_STR);
             $stmt->bindParam("province", $province, PDO::PARAM_STR);
             $stmt->bindParam("booking_service_id", $booking_service_id, PDO::PARAM_STR);
-            $stmt->bindParam("datetime", $datetime, PDO::PARAM_STR);
-            $stmt->bindParam("status", $status, PDO::PARAM_STR);
+            $stmt->bindParam("time", $time, PDO::PARAM_STR);
+            $stmt->bindParam("status_id", $status_id, PDO::PARAM_STR);
             $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
-            
+            $created = time();
+            $stmt->bindParam("created", $created, PDO::PARAM_STR);
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            $stmt->bindParam("user_type", $user_type, PDO::PARAM_INT);
             
             $stmt->execute();
-
-            $sql1 = "SELECT * FROM booking WHERE user_id_fk=:user_id  ORDER BY 
+            
+            $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id WHERE user_id_fk=:user_id  ORDER BY 
                            booking_id DESC LIMIT 1";
             $stmt1 = $db->prepare($sql1);
             $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            
             
             $stmt1->execute();
             $feedData = $stmt1->fetch(PDO::FETCH_OBJ);
@@ -205,7 +210,7 @@ function profileUpdate(){
     $username=$data->username;
     $license=$data->license;
     $tel=$data->tel;
-    $province=$data->province;
+    
    
     
     $systemToken=apiToken($user_id);
@@ -215,12 +220,12 @@ function profileUpdate(){
             $feedData = '';
             $db = getDB();
             $sql = "UPDATE customer SET email = :email, username = :username, license = :license,
-                    tel = :tel, province = :province  WHERE user_id = :user_id"; 
+                    tel = :tel  WHERE user_id = :user_id"; 
             $stmt = $db->prepare($sql);
             $stmt->bindParam("email", $username, PDO::PARAM_STR);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
             $stmt->bindParam("license", $license, PDO::PARAM_STR);
-            $stmt->bindParam("province", $province, PDO::PARAM_STR);           
+                   
             $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
             
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -254,13 +259,23 @@ function feed(){
             $feedData = '';
             $db = getDB();
             if($lastCreated){
-                $sql = "SELECT * FROM booking WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
+                $sql = "SELECT booking.user_id_fk,booking.created,booking.province,booking.booking_service_id,booking.license, booking.tel, 
+                        booking.status_id, customer.email,booking_time.time ,status.status_name FROM booking 
+                
+                        INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                        INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
              }
             else{
-                $sql = "SELECT * FROM booking WHERE user_id_fk=:user_id ORDER BY booking_id DESC ";
+                $sql = "SELECT booking.booking_id,booking.user_id_fk,booking.created,booking.province,booking.booking_service_id,booking.license, booking.tel, 
+                               booking.status_id, customer.email,booking_time.time ,status.status_name FROM booking 
+                               
+                               INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                               INNER JOIN status ON booking.status_id=status.status_id
+                               
+                               WHERE user_id_fk=:user_id ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
             }
