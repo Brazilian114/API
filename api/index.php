@@ -15,6 +15,7 @@ $app->post('/signup','signup'); /* User Signup  */
 $app->post('/feed','feed'); /* User Feeds  */
 $app->post('/feedUpdate','feedUpdate'); /* User Feeds  */
 $app->post('/profileUpdate','profileUpdate');
+$app->post('/history','history');
 
 $app->post('/feedDelete','feedDelete'); /* User Feeds  */
 //$app->post('/getImages', 'getImages');
@@ -154,9 +155,11 @@ function feedUpdate(){
     $province=$data->province;
     $service_name=$data->service_name;
     $time=$data->time;
+    $time2=$data->time2;
     $status_id=$data->status_id;
     $user_type=$data->user_type;
     
+
     $systemToken=apiToken($user_id);
 
     try {
@@ -180,7 +183,7 @@ function feedUpdate(){
             
             $stmt->execute();
             
-            $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+            $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id LEFT JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
                               WHERE user_id_fk=:user_id  ORDER BY booking_id DESC LIMIT 1";
             $stmt1 = $db->prepare($sql1);
             $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -254,6 +257,8 @@ function feed(){
     $user_id=$data->user_id;
     $token=$data->token;
     $lastCreated = $data->lastCreated;
+    
+    
     $systemToken=apiToken($user_id);
    
     try {
@@ -262,8 +267,72 @@ function feed(){
             $feedData = '';
             $db = getDB();
             if($lastCreated){
-                $sql = "SELECT booking.user_id_fk,booking.created,booking.province,booking.booking_service_id,booking.license, booking.tel, 
-                        booking.status_id, customer.email ,status.status_name ,booking_service.service_name ,booking_service.service_price FROM booking 
+                $sql = "SELECT *  FROM booking 
+                
+                        INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                        INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+                        INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC LIMIT 5 ";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
+                $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+             }
+            else{
+                $sql = "SELECT * FROM booking 
+                               
+                               INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                               INNER JOIN status ON booking.status_id=status.status_id
+                               INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+
+                               WHERE user_id_fk=:user_id AND booking.status_id < '3' ORDER BY booking_id DESC LIMIT 5";
+                $stmt = $db->prepare($sql);
+                $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+                
+                
+                
+            }
+            
+            $stmt->execute();
+            $feedData = $stmt->fetchAll(PDO::FETCH_OBJ);
+           
+            $db = null;
+            if($feedData){
+                echo '{"feedData": ' . json_encode($feedData) . '}';
+            }
+            else{
+                echo '{"feedData": "" }';
+            }
+            
+
+
+        } else{
+            echo '{"error":{"text":"No access"}}';
+        }
+       
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+    
+    
+    
+}
+
+function history(){
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    $user_id=$data->user_id;
+    $token=$data->token;
+    $lastCreated = $data->lastCreated;
+    
+    
+    $systemToken=apiToken($user_id);
+   
+    try {
+         
+        if($systemToken == $token){
+            $feedData = '';
+            $db = getDB();
+            if($lastCreated){
+                $sql = "SELECT *  FROM booking 
                 
                         INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                         INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
@@ -273,16 +342,18 @@ function feed(){
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
              }
             else{
-                $sql = "SELECT booking.booking_id,booking.user_id_fk,booking.created,booking.province,booking.booking_service_id,booking.license, booking.tel, 
-                               booking.status_id, customer.email,booking_time.time ,status.status_name,booking_service.service_name,booking_service.service_price FROM booking 
+                $sql = "SELECT * FROM booking 
                                
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                                INNER JOIN status ON booking.status_id=status.status_id
                                INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
 
-                               WHERE user_id_fk=:user_id ORDER BY booking_id DESC ";
+                               WHERE user_id_fk=:user_id AND booking.status_id = '3' ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+                
+                
+                
             }
             
             $stmt->execute();
