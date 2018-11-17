@@ -90,6 +90,7 @@ function signup() {
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username,PDO::PARAM_STR);
             $stmt->bindParam("email", $email,PDO::PARAM_STR);
+            
             $stmt->execute();
             $mainCount=$stmt->rowCount();
             $created=time();
@@ -154,25 +155,28 @@ function feedUpdate(){
     $tel=$data->tel;
     $province=$data->province;
     $service_name=$data->service_name;
+    
     $time=$data->time;
     $time2=$data->time2;
     $status_id=$data->status_id;
     $user_type=$data->user_type;
+    $lastInsertId=$data->lastInsertId;
+    
     
 
+    
     $systemToken=apiToken($user_id);
-
     try {
         if($systemToken == $token){
             $feedData = '';
             $db = getDB();
-            $sql = "INSERT INTO booking ( username ,license ,province, booking_service_id, time_id, status_id, tel,created,user_id_fk,user_type) VALUES 
-                                        (:username,:license,:province,:service_name,:time,:status_id,:tel,:created,:user_id,:user_type)";
+            $sql = "INSERT INTO booking ( username ,license ,province,time_id,status_id, tel,created,user_id_fk,user_type) VALUES 
+                                        (:username,:license,:province,:time,:status_id,:tel,:created,:user_id,:user_type)";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
             $stmt->bindParam("license", $license, PDO::PARAM_STR);
             $stmt->bindParam("province", $province, PDO::PARAM_STR);
-            $stmt->bindParam("service_name", $service_name, PDO::PARAM_STR);
+            //$stmt->bindParam("service_name", $service_name,PDO::PARAM_STR);
             $stmt->bindParam("time", $time, PDO::PARAM_STR);
             $stmt->bindParam("status_id", $status_id, PDO::PARAM_STR);
             $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
@@ -181,12 +185,36 @@ function feedUpdate(){
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
             $stmt->bindParam("user_type", $user_type, PDO::PARAM_INT);
             
+            $mainCount=$stmt->rowCount();
             $stmt->execute();
-            
-            $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id LEFT JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+            $id = $db->lastInsertId();
+
+           if($mainCount ==0)
+                {
+            $feedData = '';
+            $db = getDB();
+
+                 $sql="INSERT INTO booking_detail (booking_service_id, booking_id) VALUES
+                                                  (:service_name,:id)";
+                 $stmt = $db->prepare($sql);
+                      for($i=0;$i<=$service_name;$i++)
+                            {
+
+                             $stmt->bindParam("service_name", $service_name[$i],PDO::PARAM_STR);
+                             $stmt->bindParam("id", $id,PDO::PARAM_STR);
+                             $stmt->execute();
+                         
+                            }
+                
+                 } 
+
+            /*$sql1 = "SELECT * FROM booking_detail  INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id INNER JOIN booking ON booking_detail.booking_id=booking.booking_id
+                              WHERE booking_id=:id ORDER BY detail_id DESC ";*/
+              $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id LEFT JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
                               WHERE user_id_fk=:user_id  ORDER BY booking_id DESC LIMIT 1";
             $stmt1 = $db->prepare($sql1);
             $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            //$stmt1->bindParam("id", $id, PDO::PARAM_INT);
             
             
             $stmt1->execute();
@@ -196,13 +224,108 @@ function feedUpdate(){
         } else{
             echo '{"error":{"text":"No access"}}';
         }
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+}
+
+/*
+function feedUpdate(){
+    
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    $user_id=$data->user_id;
+    $token=$data->token;
+    $username=$data->username;
+    $license=$data->license;
+    $tel=$data->tel;
+    $province=$data->province;
+    $service_name=$data->service_name;
+    //$service_name = array();
+    $time=$data->time;
+    $time2=$data->time2;
+    $status_id=$data->status_id;
+    $user_type=$data->user_type;
+    $lastInsertId=$data->lastInsertId;
+    
+
+    $systemToken=apiToken($user_id);
+
+    try {
+        if($systemToken == $token){
+
+            $feedData = '';
+            $db = getDB(); 
+
+            
+            $sql = "INSERT INTO booking ( username ,license ,province,time_id ,status_id, tel,created,user_id_fk,user_type) VALUES 
+                                        (:username,:license,:province,:time,:status_id,:tel,:created,:user_id,:user_type)";
+            $stmt = $db->prepare($sql);
+            $stmt->bindParam("username", $username, PDO::PARAM_STR);
+            $stmt->bindParam("license", $license, PDO::PARAM_STR);
+            $stmt->bindParam("province", $province, PDO::PARAM_STR);
+            $stmt->bindParam("service_name", $service_name, PDO::PARAM_STR);
+            
+            $stmt->bindParam("time", $time, PDO::PARAM_STR);
+            $stmt->bindParam("status_id", $status_id, PDO::PARAM_STR);
+            $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
+            $created = time();
+            $stmt->bindParam("created", $created, PDO::PARAM_STR);
+            $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            $stmt->bindParam("user_type", $user_type, PDO::PARAM_INT);
+            $mainCount=$stmt->rowCount();
+            $stmt->execute();
+            $id = $db->lastInsertId();
+
+            if($mainCount==0){
+               
+                
+                
+                $sql3="INSERT INTO booking_detail(booking_service_id,booking_id)VALUES
+                                                 (:service_name,:id)";
+                $stmt3 = $db->prepare($sql3);
+                $stmt3->bindParam("id", $id,PDO::PARAM_STR); 
+                $stmt3->bindParam("service_name", $service_name,PDO::PARAM_STR);
+                
+
+                $stmt3->execute();      
+                  
+                
+              }
+            
+            $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id LEFT JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+                              WHERE user_id_fk=:user_id AND booking_id=:booking_id ORDER BY booking_id DESC LIMIT 1";
+            $sql2 = "SELECT * FROM booking_detail  INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id INNER JOIN booking ON booking_detail.booking_id=booking.booking_id
+                               WHERE booking_id=:id ORDER BY detail_id DESC LIMIT 1";
+           
+            $stmt1 = $db->prepare($sql1,$sql2);
+            
+            $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
+            //$stmt1->bindParam("id", $id, PDO::PARAM_INT);
+            
+           
+            
+            
+            $stmt1->execute();
+            
+            $feedData = $stmt1->fetch(PDO::FETCH_OBJ);
+            
+            
+            $db = null;
+            echo '{"feedData": ' . json_encode($feedData) . '}';
+            
+        }
+   
+        else{
+            echo '{"error":{"text":"No access"}}';
+        }
 
     } catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
 
 }
-
+*/
 function profileUpdate(){
     
     $request = \Slim\Slim::getInstance()->request();
@@ -282,7 +405,6 @@ function feed(){
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                                INNER JOIN status ON booking.status_id=status.status_id
                                INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
-
                                WHERE user_id_fk=:user_id AND booking.status_id < '3' ORDER BY booking_id DESC LIMIT 5";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -302,8 +424,6 @@ function feed(){
                 echo '{"feedData": "" }';
             }
             
-
-
         } else{
             echo '{"error":{"text":"No access"}}';
         }
@@ -315,7 +435,6 @@ function feed(){
     
     
 }
-
 function history(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -347,7 +466,6 @@ function history(){
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                                INNER JOIN status ON booking.status_id=status.status_id
                                INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
-
                                WHERE user_id_fk=:user_id AND booking.status_id = '3' ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -367,8 +485,6 @@ function history(){
                 echo '{"feedData": "" }';
             }
             
-
-
         } else{
             echo '{"error":{"text":"No access"}}';
         }
