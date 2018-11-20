@@ -1,14 +1,8 @@
 <?php
 require 'config.php';
 require 'Slim/Slim.php';
-
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
-
-
-
-
-
 $app->post('/login','login'); /* User login */
 $app->post('/signup','signup'); /* User Signup  */
 //app->get('/getFeed','getFeed'); /* User Feeds  */
@@ -16,12 +10,9 @@ $app->post('/feed','feed'); /* User Feeds  */
 $app->post('/feedUpdate','feedUpdate'); /* User Feeds  */
 $app->post('/profileUpdate','profileUpdate');
 $app->post('/history','history');
-
 $app->post('/feedDelete','feedDelete'); /* User Feeds  */
 //$app->post('/getImages', 'getImages');
-
 $app->run();
-
 /************************* USER LOGIN *************************************/
 /* ### User login ### */
 function login() {
@@ -52,17 +43,12 @@ function login() {
         echo '{"userData": ' .json_encode($userData) . '}';
           
             
-
            
     }
     catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
 }
-
-
-
-
 function signup() {
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -123,7 +109,6 @@ function signup() {
            echo '{"error":{"text":'. $e->getMessage() .'}}';
        }
 }
-
 function internalUserDetails($input) {
     
     try {
@@ -143,7 +128,6 @@ function internalUserDetails($input) {
     }
     
 }
-
 function feedUpdate(){
     
     $request = \Slim\Slim::getInstance()->request();
@@ -163,20 +147,19 @@ function feedUpdate(){
     $lastInsertId=$data->lastInsertId;
     
     
-
     
     $systemToken=apiToken($user_id);
     try {
         if($systemToken == $token){
             $feedData = '';
             $db = getDB();
-            $sql = "INSERT INTO booking ( username ,license ,province,time_id,status_id, tel,created,user_id_fk,user_type) VALUES 
+            $sql = "INSERT INTO booking ( username ,license ,province,time_id,status_id,tel,created,user_id_fk,user_type) VALUES 
                                         (:username,:license,:province,:time,:status_id,:tel,:created,:user_id,:user_type)";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
             $stmt->bindParam("license", $license, PDO::PARAM_STR);
             $stmt->bindParam("province", $province, PDO::PARAM_STR);
-            //$stmt->bindParam("service_name", $service_name,PDO::PARAM_STR);
+            
             $stmt->bindParam("time", $time, PDO::PARAM_STR);
             $stmt->bindParam("status_id", $status_id, PDO::PARAM_STR);
             $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
@@ -188,35 +171,31 @@ function feedUpdate(){
             $mainCount=$stmt->rowCount();
             $stmt->execute();
             $id = $db->lastInsertId();
-
+            
            if($mainCount ==0)
                 {
-            $feedData = '';
-            $db = getDB();
-
+           
                  $sql="INSERT INTO booking_detail (booking_service_id, booking_id) VALUES
                                                   (:service_name,:id)";
                  $stmt = $db->prepare($sql);
+                 
                       for($i=0;$i<=$service_name;$i++)
                             {
-
                              $stmt->bindParam("service_name", $service_name[$i],PDO::PARAM_STR);
                              $stmt->bindParam("id", $id,PDO::PARAM_STR);
-                             $stmt->execute();
-                         
+                             $stmt->execute();  
                             }
-                
-                 } 
+                                  
+                   }
+              
 
-            /*$sql1 = "SELECT * FROM booking_detail  INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id INNER JOIN booking ON booking_detail.booking_id=booking.booking_id
-                              WHERE booking_id=:id ORDER BY detail_id DESC ";*/
-              $sql1 = "SELECT * FROM booking INNER JOIN booking_time ON booking.time_id=booking_time.time_id LEFT JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
-                              WHERE user_id_fk=:user_id  ORDER BY booking_id DESC LIMIT 1";
-            $stmt1 = $db->prepare($sql1);
+            $sql1 = "SELECT * FROM booking INNER JOIN booking_detail ON booking.booking_id=:booking_detail.booking_id 
+                                           INNER JOIN booking_service ON booking_detail.booking_service_id=:booking_service.booking_service_id 
+                                           INNER JOIN booking_time ON booking.time_id=:booking_time.time_id 
+                                           WHERE user_id_fk=:user_id  ORDER BY  booking.booking_id DESC LIMIT 1";
+            $stmt1 = $db->prepare($sql1);            
             $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
             //$stmt1->bindParam("id", $id, PDO::PARAM_INT);
-            
-            
             $stmt1->execute();
             $feedData = $stmt1->fetch(PDO::FETCH_OBJ);
             $db = null;
@@ -228,7 +207,6 @@ function feedUpdate(){
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
 }
-
 /*
 function feedUpdate(){
     
@@ -248,15 +226,11 @@ function feedUpdate(){
     $user_type=$data->user_type;
     $lastInsertId=$data->lastInsertId;
     
-
     $systemToken=apiToken($user_id);
-
     try {
         if($systemToken == $token){
-
             $feedData = '';
             $db = getDB(); 
-
             
             $sql = "INSERT INTO booking ( username ,license ,province,time_id ,status_id, tel,created,user_id_fk,user_type) VALUES 
                                         (:username,:license,:province,:time,:status_id,:tel,:created,:user_id,:user_type)";
@@ -276,7 +250,6 @@ function feedUpdate(){
             $mainCount=$stmt->rowCount();
             $stmt->execute();
             $id = $db->lastInsertId();
-
             if($mainCount==0){
                
                 
@@ -287,7 +260,6 @@ function feedUpdate(){
                 $stmt3->bindParam("id", $id,PDO::PARAM_STR); 
                 $stmt3->bindParam("service_name", $service_name,PDO::PARAM_STR);
                 
-
                 $stmt3->execute();      
                   
                 
@@ -319,11 +291,9 @@ function feedUpdate(){
         else{
             echo '{"error":{"text":"No access"}}';
         }
-
     } catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
-
 }
 */
 function profileUpdate(){
@@ -341,7 +311,6 @@ function profileUpdate(){
    
     
     $systemToken=apiToken($user_id);
-
     try {
         if($systemToken == $token){
             $feedData = '';
@@ -358,22 +327,16 @@ function profileUpdate(){
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
             
             $stmt->execute();
-
             
             $db = null;
             echo '{"feedData": ' . json_encode($feedData) . '}';
         } else{
             echo '{"error":{"text":"No access"}}';
         }
-
     } catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
-
 }
-
-
-
 function feed(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -393,29 +356,44 @@ function feed(){
                 $sql = "SELECT *  FROM booking 
                 
                         INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
-                        INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+                        
                         INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC LIMIT 5 ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
              }
             else{
-                $sql = "SELECT * FROM booking 
+                $sql = "SELECT * FROM booking
                                
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                                INNER JOIN status ON booking.status_id=status.status_id
-                               INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
-                               WHERE user_id_fk=:user_id AND booking.status_id < '3' ORDER BY booking_id DESC LIMIT 5";
+                               INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
+                               INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
+                               WHERE user_id_fk=:user_id AND booking.status_id < '3'  ORDER BY booking.booking_id DESC LIMIT 5";
+                               
+                
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+                $stmt->fetchAll(PDO::FETCH_OBJ);
+                $mainCount=$stmt->rowcount(); 
+
+                if($mainCount==0){
+                    $sql = "SELECT * FROM booking_detail INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
+                                                         INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
+                                                         INNER JOIN booking ON booking_detail.booking_id=booking.booking_id
+                                                        ";
                 
-                
-                
+               foreach ($sql as $row){
+            
+             echo $row['service_name'].'';
+            }
+        }   
+    
             }
             
             $stmt->execute();
             $feedData = $stmt->fetchAll(PDO::FETCH_OBJ);
-           
+            
             $db = null;
             if($feedData){
                 echo '{"feedData": ' . json_encode($feedData) . '}';
@@ -454,7 +432,7 @@ function history(){
                 $sql = "SELECT *  FROM booking 
                 
                         INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
-                        INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
+                        
                         INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
@@ -465,8 +443,10 @@ function history(){
                                
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
                                INNER JOIN status ON booking.status_id=status.status_id
-                               INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id
-                               WHERE user_id_fk=:user_id AND booking.status_id = '3' ORDER BY booking_id DESC ";
+                               INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
+                               INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
+                               WHERE user_id_fk=:user_id AND booking.status_id = '3' ORDER BY booking.booking_id DESC ";
+
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
                 
@@ -496,8 +476,6 @@ function history(){
     
     
 }
-
-
 function feedDelete(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -512,11 +490,12 @@ function feedDelete(){
         if($systemToken == $token){
             $feedData = '';
             $db = getDB();
-            $sql = "DELETE FROM booking  WHERE user_id_fk=:user_id AND booking_id=:booking_id";
+            $sql = "DELETE booking,booking_detail FROM `booking` INNER JOIN booking_detail ON  booking.booking_id=booking_detail.booking_id";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
             $stmt->bindParam("booking_id", $booking_id, PDO::PARAM_INT);
             $stmt->execute();
+           
             
            
             $db = null;
@@ -530,12 +509,4 @@ function feedDelete(){
     }
     
 }
-
 ?>
-
-
-
-
-
-
-
