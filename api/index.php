@@ -141,7 +141,7 @@ function feedUpdate(){
     $service_name=$data->service_name;
     
     $time=$data->time;
-    $time2=$data->time2;
+    
     $status_id=$data->status_id;
     $user_type=$data->user_type;
     $lastInsertId=$data->lastInsertId;
@@ -153,7 +153,7 @@ function feedUpdate(){
         if($systemToken == $token){
             $feedData = '';
             $db = getDB();
-            $sql = "INSERT INTO booking ( username ,license ,province,time_id,status_id,tel,created,user_id_fk,user_type) VALUES 
+            $sql = "INSERT INTO booking ( username ,license ,province,time,status_id,tel,created,user_id_fk,user_type) VALUES 
                                         (:username,:license,:province,:time,:status_id,:tel,:created,:user_id,:user_type)";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
@@ -185,13 +185,18 @@ function feedUpdate(){
                              $stmt->bindParam("id", $id,PDO::PARAM_STR);
                              $stmt->execute();  
                             }
+                            $sql2 = "SELECT * FROM booking_detail  INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id INNER JOIN booking ON booking_detail.booking_id=booking.booking_id
+                            WHERE booking_detail.booking_id=:id ORDER BY booking_detail.detail_id DESC LIMIT 1";
+                          $stmt1 = $db->prepare($sql1);            
+                          $stmt1->bindParam("id", $id, PDO::PARAM_INT);
+                          $stmt1->execute();
+                          $feedData = $stmt1->fetch(PDO::FETCH_OBJ);
                                   
                    }
               
-
             $sql1 = "SELECT * FROM booking INNER JOIN booking_detail ON booking.booking_id=:booking_detail.booking_id 
                                            INNER JOIN booking_service ON booking_detail.booking_service_id=:booking_service.booking_service_id 
-                                           INNER JOIN booking_time ON booking.time_id=:booking_time.time_id 
+                                           
                                            WHERE user_id_fk=:user_id  ORDER BY  booking.booking_id DESC LIMIT 1";
             $stmt1 = $db->prepare($sql1);            
             $stmt1->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -355,7 +360,7 @@ function feed(){
             if($lastCreated){
                 $sql = "SELECT *  FROM booking 
                 
-                        INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                        INNER JOIN customer ON booking.user_id_fk=customer.user_id 
                         
                         INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC LIMIT 5 ";
                 $stmt = $db->prepare($sql);
@@ -365,7 +370,7 @@ function feed(){
             else{
                 $sql = "SELECT * FROM booking
                                
-                               INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                               INNER JOIN customer ON booking.user_id_fk=customer.user_id 
                                INNER JOIN status ON booking.status_id=status.status_id
                                INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
                                INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
@@ -376,7 +381,6 @@ function feed(){
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
                 $stmt->fetchAll(PDO::FETCH_OBJ);
                 $mainCount=$stmt->rowcount(); 
-
                 if($mainCount==0){
                     $sql = "SELECT * FROM booking_detail INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
                                                          INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
@@ -431,7 +435,7 @@ function history(){
             if($lastCreated){
                 $sql = "SELECT *  FROM booking 
                 
-                        INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                        INNER JOIN customer ON booking.user_id_fk=customer.user_id 
                         
                         INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
                 $stmt = $db->prepare($sql);
@@ -441,12 +445,11 @@ function history(){
             else{
                 $sql = "SELECT * FROM booking 
                                
-                               INNER JOIN customer ON booking.user_id_fk=customer.user_id LEFT JOIN booking_time ON booking.time_id=booking_time.time_id 
+                               INNER JOIN customer ON booking.user_id_fk=customer.user_id 
                                INNER JOIN status ON booking.status_id=status.status_id
                                INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
                                INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
                                WHERE user_id_fk=:user_id AND booking.status_id = '3' ORDER BY booking.booking_id DESC ";
-
                 $stmt = $db->prepare($sql);
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
                 
