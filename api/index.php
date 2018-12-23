@@ -10,6 +10,7 @@ $app->post('/queue','queue');
 $app->post('/queueUpdate','queueUpdate'); 
 $app->post('/profileUpdate','profileUpdate');
 $app->post('/history','history');
+$app->post('/service','service');
 $app->post('/queueDelete','queueDelete'); 
 
 $app->run();
@@ -23,7 +24,8 @@ function login() {
         
         $db = getDB();
         $userData ='';
-        $sql = "SELECT *  FROM customer  INNER JOIN province ON customer.province=province.province_id WHERE  email=:username and password=:password ";
+        $sql = "SELECT *  FROM customer  INNER JOIN province ON customer.province=province.province_id      
+                                         INNER JOIN car_type ON customer.car_type=car_type.car_type_id WHERE  email=:username and password=:password ";
         $stmt = $db->prepare($sql);
         $stmt->bindParam("username", $data->username, PDO::PARAM_STR);
         $password=hash('sha256',$data->password);
@@ -56,6 +58,7 @@ function signup() {
     $tel=$data->tel;
     $license=$data->license;
     $province_name=$data->province_name;
+    $type_name=$data->type_name;
     
     $password=$data->password;
     
@@ -71,7 +74,8 @@ function signup() {
         {
             $db = getDB();
             $userData = '';
-            $sql = "SELECT * FROM customer INNER JOIN province ON customer.province=province.province_id WHERE username=:username or email=:email";
+            $sql = "SELECT * FROM customer INNER JOIN province ON customer.province=province.province_id
+                                           INNER JOIN car_type ON customer.car_type=car_type.car_type_id WHERE username=:username or email=:email";
             $stmt = $db->prepare($sql);
             $stmt->bindParam("username", $username,PDO::PARAM_STR);
             $stmt->bindParam("email", $email,PDO::PARAM_STR);
@@ -83,7 +87,7 @@ function signup() {
             {
                 
                 
-                $sql1="INSERT INTO customer(username,password,email,tel,province,license)VALUES(:username,:password,:email,:tel,:province_name,:license)";
+                $sql1="INSERT INTO customer(username,password,email,tel,province,license,car_type)VALUES(:username,:password,:email,:tel,:province_name,:license,:type_name)";
                 $stmt1 = $db->prepare($sql1);
                 $stmt1->bindParam("username", $username,PDO::PARAM_STR);
                 $password=hash('sha256',$data->password);
@@ -91,6 +95,7 @@ function signup() {
                 $stmt1->bindParam("email", $email,PDO::PARAM_STR);
                 $stmt1->bindParam("tel", $tel,PDO::PARAM_STR);
                 $stmt1->bindParam("province_name", $province_name,PDO::PARAM_STR);
+                $stmt1->bindParam("type_name", $type_name,PDO::PARAM_STR);
                 $stmt1->bindParam("license", $license,PDO::PARAM_STR);
                 
                 $stmt1->execute();
@@ -112,7 +117,8 @@ function internalUserDetails($input) {
     
     try {
         $db = getDB();
-        $sql = "SELECT user_id, email, username, tel, license, province_name FROM customer INNER JOIN province ON customer.province=province.province_id 
+        $sql = "SELECT user_id, email, username, tel, license, province_name ,type_name FROM customer INNER JOIN province ON customer.province=province.province_id 
+                       INNER JOIN car_type ON customer.car_type=car_type.car_type_id 
                        WHERE username=:input or email=:input";
         $stmt = $db->prepare($sql);
         $stmt->bindParam("input", $input,PDO::PARAM_STR);
@@ -311,6 +317,7 @@ function profileUpdate(){
     $license=$data->license;
     $tel=$data->tel;
     $province=$data->province;
+    $car_type=$data->car_type;
     
    
     
@@ -319,13 +326,14 @@ function profileUpdate(){
         if($systemToken == $token){
             $userData = '';
             $db = getDB();
-            $sql = "UPDATE customer SET email = :email, username = :username, license = :license, province = :province,
+            $sql = "UPDATE customer SET email = :email, username = :username, license = :license, province = :province, car_type = :car_type,
                     tel = :tel  WHERE user_id = :user_id"; 
             $stmt = $db->prepare($sql);
             $stmt->bindParam("email", $email, PDO::PARAM_STR);
             $stmt->bindParam("username", $username, PDO::PARAM_STR);
             $stmt->bindParam("license", $license, PDO::PARAM_STR);
-            $stmt->bindParam("province", $province, PDO::PARAM_STR);                   
+            $stmt->bindParam("province", $province, PDO::PARAM_STR);  
+            $stmt->bindParam("car_type", $car_type, PDO::PARAM_STR);                 
             $stmt->bindParam("tel", $tel, PDO::PARAM_STR);
             
             $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
@@ -481,7 +489,6 @@ function queue(){
                                
                                INNER JOIN booking_service ON booking.booking_service_id=booking_service.booking_service_id 
                                WHERE user_id_fk=:user_id AND booking.status_id < '3'  ORDER BY booking.booking_id DESC LIMIT 5";
-
   
                
           
@@ -517,7 +524,6 @@ function queue(){
     } catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
-
 }
 
 
@@ -592,7 +598,7 @@ function history(){
     $data = json_decode($request->getBody());
     $user_id=$data->user_id;
     $token=$data->token;
-    $lastCreated = $data->lastCreated;
+    
     
     
     $systemToken=apiToken($user_id);
@@ -602,17 +608,8 @@ function history(){
         if($systemToken == $token){
             $queueData = '';
             $db = getDB();
-            if($lastCreated){
-                $sql = "SELECT *  FROM booking 
-                
-                        INNER JOIN customer ON booking.user_id_fk=customer.user_id 
-                        
-                        INNER JOIN status ON booking.status_id=status.status_id WHERE user_id_fk=:user_id AND created < :lastCreated ORDER BY booking_id DESC ";
-                $stmt = $db->prepare($sql);
-                $stmt->bindParam("lastCreated", $lastCreated, PDO::PARAM_STR);
-                $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
-             }
-            else{
+           
+            
                 $sql = "SELECT * FROM booking 
                                
                                INNER JOIN customer ON booking.user_id_fk=customer.user_id 
@@ -624,8 +621,8 @@ function history(){
                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
                 
                 
-                
-            }
+              
+            
             
             $stmt->execute();
             $queueData = $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -650,6 +647,62 @@ function history(){
     
 }
 
+function service(){
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    $user_id=$data->user_id;
+    $car_type=$data->car_type;
+    $car_type_id=$data->car_type_id;
+    $token=$data->token;
+    
+    
+    
+    $systemToken=apiToken($user_id);
+   
+    try {
+         
+        if($systemToken == $token){
+            $serviceData = '';
+            $db = getDB();
+           
+            /*$sql ="SELECT * FROM booking_service 
+            join custumer on booking_service.car_type_id = custumer.car_type
+            WHERE booking_service.car_type_id =: custumer.car_type ORDER BY booking_service.booking_service_id ASC ";
+
+                 $stmt = $db->prepare($sql);
+                 $stmt->bindParam("car_type", $car_type, PDO::PARAM_INT);*/
+           $sql ="SELECT * FROM customer 
+            join booking_service on customer.car_type = booking_service.car_type_id 
+            WHERE  user_id=:user_id ORDER BY booking_service.booking_service_id ASC ";
+
+                 $stmt = $db->prepare($sql);
+                 $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+        
+                
+                
+                
+            
+            
+            $stmt->execute();
+            $serviceData = $stmt->fetchAll(PDO::FETCH_OBJ);
+           
+            $db = null;
+            if($serviceData){
+                echo '{"serviceData": ' . json_encode($serviceData) . '}';
+            }
+            else{
+                echo '{"serviceData": "" }';
+            }
+            
+        } else{
+            echo '{"error":{"text":"No access"}}';
+        }
+       
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+    
+}
 
 
 /*
