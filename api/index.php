@@ -3,7 +3,6 @@ require 'config.php';
 require 'Slim/Slim.php';
 \Slim\Slim::registerAutoloader();
 $app = new \Slim\Slim();
-
 $app->post('/login','login'); 
 $app->post('/signup','signup'); 
 $app->post('/queue','queue'); 
@@ -12,9 +11,7 @@ $app->post('/profileUpdate','profileUpdate');
 $app->post('/history','history');
 $app->post('/service','service');
 $app->post('/queueDelete','queueDelete'); 
-
 $app->run();
-
 function login() {
     
     $request = \Slim\Slim::getInstance()->request();
@@ -349,7 +346,6 @@ function profileUpdate(){
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
 }
-
 /*
 function queue(){
     $request = \Slim\Slim::getInstance()->request();
@@ -385,7 +381,6 @@ function queue(){
                                INNER JOIN booking_detail ON booking.booking_id=booking_detail.booking_id 
                                INNER JOIN booking_service ON booking_detail.booking_service_id=booking_service.booking_service_id 
                                WHERE user_id_fk=:user_id AND booking.status_id < '3'  ORDER BY booking.booking_id DESC LIMIT 5";
-
   
                 $sql2 = "SELECT ords.booking_id as ID , cust.username ,ords.time,ords.created FROM booking as ords JOIN customer as cust ON ords.user_id_fk = cust.user_id
                                 JOIN booking_detail as odeet ON ords.booking_id = odeet.booking_id 
@@ -412,21 +407,18 @@ function queue(){
                     $sql3 = "SELECT * FROM booking_detail as ord
                         JOIN booking_service as prod ON ord.booking_service_id = prod.booking_service_id
                          ";
-
                         $stmt1 = $db->prepare($sql3);
                         //$stmt1->bindParam("ord_id", $ord_id, PDO::PARAM_INT);
                         //$stmt->bindParam("booking_id", $booking_id, PDO::PARAM_INT);
                         $stmt1->fetchAll(PDO::FETCH_OBJ);
                         
                        
-
                     foreach ( $stmt1 as $vorder2 ) {
                         $row_array[] = $vorder2;
                     }
                     array_push($json_response, $row_array);
                 }
                 $stmt1->execute(array($json_response));
-
             
             }
             
@@ -449,12 +441,8 @@ function queue(){
     } catch(PDOException $e) {
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
-
 }
-
 */
-
-
 function queue(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -525,9 +513,6 @@ function queue(){
         echo '{"error":{"text":'. $e->getMessage() .'}}';
     }
 }
-
-
-
 /*
 function history(){
     $request = \Slim\Slim::getInstance()->request();
@@ -592,7 +577,6 @@ function history(){
     
 }
 */
-
 function history(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -646,7 +630,6 @@ function history(){
     
     
 }
-
 function service(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -668,13 +651,11 @@ function service(){
             /*$sql ="SELECT * FROM booking_service 
             join custumer on booking_service.car_type_id = custumer.car_type
             WHERE booking_service.car_type_id =: custumer.car_type ORDER BY booking_service.booking_service_id ASC ";
-
                  $stmt = $db->prepare($sql);
                  $stmt->bindParam("car_type", $car_type, PDO::PARAM_INT);*/
            $sql ="SELECT * FROM customer 
             join booking_service on customer.car_type = booking_service.car_type_id 
             WHERE  user_id=:user_id ORDER BY booking_service.booking_service_id ASC ";
-
                  $stmt = $db->prepare($sql);
                  $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
         
@@ -703,8 +684,58 @@ function service(){
     }
     
 }
-
-
+function service(){
+    $request = \Slim\Slim::getInstance()->request();
+    $data = json_decode($request->getBody());
+    //$user_id=$data->user_id;
+    $car_type=$data->car_type;
+    $car_type_id=$data->car_type_id;
+    $token=$data->token;
+    
+    
+    
+    $systemToken=apiToken($user_id);
+   
+    try {
+         
+        if($systemToken == $token){
+            $serviceData = '';
+            $db = getDB();
+           
+            /*$sql ="SELECT * FROM booking_service 
+            join custumer on booking_service.car_type_id = custumer.car_type
+            WHERE booking_service.car_type_id =: custumer.car_type ORDER BY booking_service.booking_service_id ASC ";
+                 $stmt = $db->prepare($sql);
+                 $stmt->bindParam("car_type", $car_type, PDO::PARAM_INT);*/
+           $sql ="SELECT * booking_service onORDER BY booking_service_id ASC ";
+                 $stmt = $db->prepare($sql);
+                // $stmt->bindParam("user_id", $user_id, PDO::PARAM_INT);
+        
+                
+                
+                
+            
+            
+            $stmt->execute();
+            $serviceData = $stmt->fetchAll(PDO::FETCH_OBJ);
+           
+            $db = null;
+            if($serviceData){
+                echo '{"serviceData": ' . json_encode($serviceData) . '}';
+            }
+            else{
+                echo '{"serviceData": "" }';
+            }
+            
+        } else{
+            echo '{"error":{"text":"No access"}}';
+        }
+       
+    } catch(PDOException $e) {
+        echo '{"error":{"text":'. $e->getMessage() .'}}';
+    }
+    
+}
 /*
 function queueDelete(){
     $request = \Slim\Slim::getInstance()->request();
@@ -739,7 +770,6 @@ function queueDelete(){
     }
     
 }*/
-
 function queueDelete(){
     $request = \Slim\Slim::getInstance()->request();
     $data = json_decode($request->getBody());
@@ -773,6 +803,4 @@ function queueDelete(){
     }
     
 }
-
-
 ?>

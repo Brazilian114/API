@@ -2,8 +2,6 @@
 //ob_start("ob_gzhandler");
 error_reporting(0);
 session_start();
-
-
 /* DATABASE CONFIGURATION */
 define('DB_SERVER', 'localhost');
 define('DB_USERNAME', 'root');
@@ -11,8 +9,6 @@ define('DB_PASSWORD', '');
 define('DB_DATABASE', 'project');
 define("BASE_URL", "http://localhost/PHP-Slim-Restful/api/");
 define("SITE_KEY", 'yourSecretKey');
-
-
 function getDB() 
 {
 	$dbhost=DB_SERVER;
@@ -25,14 +21,11 @@ function getDB()
 	return $dbConnection;
 }
 /* DATABASE CONFIGURATION END */
-
 /* API key encryption */
 function apiToken($session_uid)
 {
 $key=md5(SITE_KEY.$session_uid);
 return hash('sha256', $key);
 }
-
-
-
 ?>
+
